@@ -2,43 +2,78 @@ library youtube_api_v3;
 
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart';
+
+enum Parts{snippet,contentDetails,id,status}
 
 class YoutubeAPIv3 {
   final String key;
-  final String link = 'https://www.googleapis.com/youtube/v3/';
   YoutubeAPIv3(this.key);
 
-  playListItems(playlistId,maxResult,part){
-    return get(link+'playlistItems?playlistId='+playlistId+'&key='+key+'&maxResult='+maxResult.toString() +'&part='+part);
+  static String linkFromParams(Map<String,dynamic> params){
+    return params.keys.map((key){
+      if(params[key] is Parts){
+        String partValue = params[key].toString().split('.').last;
+        return '$key=$partValue';
+      }
+      return '$key=${params[key]}';
+    }).join('&');
   }
 
-  Future<PlayListItemListResponse> playListItems2(playlistId,maxResult,part){
+  Future<PlayListItemListResponse> playListItems({@required String playlistId,@required int maxResults,@required Parts part}){
+    Map<String,dynamic> params = new Map();
+    params['key'] = key;
+    params['playlistId'] = playlistId;
+    params['maxResults'] = maxResults;
+    params['part'] = part;
+    return playListItemsParams(params);
+  }
+
+  static Future<PlayListItemListResponse> playListItemsParams(Map<String,dynamic> params){
     return
-      get('${link}playlistItems?playlistId=${playlistId}&key=${key}&maxResult=${maxResult}&part=${part}')
+      get('https://www.googleapis.com/youtube/v3/playlistItems?${linkFromParams(params)}')
         .then((response)=>
-          PlayListItemListResponse.fromJson(jsonDecode(response.body)));
+          PlayListItemListResponse.fromJson(params,jsonDecode(response.body)));
   }
 }
 
 class PlayListItemListResponse{
+  final Map<String,dynamic> params;
   final String kind;
   final String etag;
+  final String prevPageToken;
   final String nextPageToken;
   final PageInfo pageInfo;
   final List<PlayListItem> items;
-  PlayListItemListResponse(this.kind,this.etag,this.nextPageToken,this.pageInfo,this.items);
+  PlayListItemListResponse(this.params,this.kind,this.etag,this.prevPageToken,this.nextPageToken,this.pageInfo,this.items);
 
-  factory PlayListItemListResponse.fromJson(Map<String,dynamic> json){
+  prevPage(){
+    if(prevPageToken == null)
+      throw('No prev page!');
+    params['pageToken'] = prevPageToken;
+    return YoutubeAPIv3.playListItemsParams(params);
+  }
+
+  nextPage(){
+    if(nextPageToken == null)
+      throw('No next page!');
+    params['pageToken'] = nextPageToken;
+    return YoutubeAPIv3.playListItemsParams(params);
+  }
+
+  factory PlayListItemListResponse.fromJson(Map<String,dynamic> params,Map<String,dynamic> json){
     return PlayListItemListResponse(
+      params,
       json['kind'],
       json['etag'],
+      json['prevPageToken'],
       json['nextPageToken'],
       PageInfo.fromJson(json['pageInfo']),
       List<PlayListItem>.from(
         json['items'].map(
           (playListItem)=>
-            PlayListItem.fromJson(playListItem)
+            PlayListItem.fromJson(playListItem,params['part'])
         ).toList()
       )
     );
@@ -64,14 +99,44 @@ class PlayListItem{
   final String etag;
   final String id;
   final Snippet snippet;
+  final ContentDetails contentDetails;
+  final Status status;
 
-  PlayListItem(this.kind,this.etag,this.id,this.snippet);
-  factory PlayListItem.fromJson(Map<String,dynamic> json){
+  PlayListItem(this.kind,this.etag,this.id,this.snippet,this.contentDetails,this.status);
+  factory PlayListItem.fromJson(Map<String,dynamic> json,Parts part){
     return PlayListItem(
       json['kind'],
       json['etag'],
       json['id'],
-      Snippet.fromJson(json['snippet'])
+      part == Parts.snippet ? Snippet.fromJson(json['snippet']) : null,
+      part == Parts.contentDetails ? ContentDetails.fromJson(json['contentDetails']) : null,
+      part == Parts.status ? Status.fromJson(json['status']) : null
+    );
+  }
+}
+
+class ContentDetails{
+  final String videoId;
+  final String videoPublishedAt;
+
+  ContentDetails(this.videoId,this.videoPublishedAt);
+
+  factory ContentDetails.fromJson(Map<String,dynamic> json){
+    return ContentDetails(
+      json['videoId'],
+      json['videoPublishedAt']
+    );
+  }
+}
+
+class Status{
+  final String privacyStatus;
+
+  Status(this.privacyStatus);
+
+  factory Status.fromJson(Map<String,dynamic> json){
+    return Status(
+      json['privacyStatus']
     );
   }
 }

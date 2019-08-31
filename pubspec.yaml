@@ -1,8 +1,8 @@
 name: youtube_api_v3
 description: Flutter package for Youtube API v3.
-version: 0.0.1
+version: 0.0.2
 author: Catalin Stochita <stochitacatalin@gmail.com>
-homepage:
+homepage: https://github.com/Stochita/youtube_api_v3
 
 environment:
   sdk: ">=2.1.0 <3.0.0"
