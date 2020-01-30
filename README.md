@@ -2,6 +2,9 @@
 
 Flutter package for Youtube API v3.
 
+v0.0.3
+Added support for Videos(by id)
+
 ## API's supported with parameters
 
 * PlaylistItems
@@ -13,6 +16,13 @@ Flutter package for Youtube API v3.
     * status
   * maxResult
   * pageToken
+* Videos
+  * id
+  * part
+    * snippet
+    * id
+    * contentDetails
+    * status
 
 ## Getting Started
 
@@ -21,7 +31,7 @@ To use this package, add the dependency to your pubspec.yaml file
 ```yaml
 dependencies:
   ...
-  youtube_api_v3: ^0.0.2
+  youtube_api_v3: ^0.0.3
 ```
 
 ## Usage
